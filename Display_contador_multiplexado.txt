@@ -1,0 +1,81 @@
+#define F_CPU 16000000
+
+/* Inclusiones */
+#include <stdint.h>
+#include <avr/io.h>
+#include <util/delay.h>
+
+/* Constantes y macros */
+#define DDR_Display	DDRF
+#define Port_Display	PORTF
+#define DDR_Enables	DDRK
+#define Port_Enables	PORTK
+#define Mascara_Enables	0x0F
+#define numero_displays	2
+#define Delay_Display	(16/numero_displays)
+#define Delay_segundo	(1000/Delay_Display)
+uint16_t num = 0000;
+uint8_t sec;
+
+/* Variables globales */
+uint8_t Display_Buffer[4];
+
+/* Declaración de funciones */
+uint8_t Display_Decodificador_Digito(uint8_t num_Digito);
+void Display_Decodificador_Entero_Decimal(uint16_t num_binario);
+void Display_Gestionador_Enables(void);
+
+/* Fución principal */
+int main(void){
+	DDR_Display = 0xFF;		//Configuramos como salida los pines del Display
+	DDR_Enables = 0x0F;		//Configuramos como salida los enables
+	Port_Display = 0x00;	//Inicializamos el display
+	Port_Enables = 0x00;	//Inicializamos los enables
+
+	while(1){
+		
+	num++;
+		for (sec=0;sec<=Delay_segundo;sec++)
+		{
+		Display_Decodificador_Entero_Decimal(num);	//Decodifica el número
+		Display_Gestionador_Enables();				//Escribe el número
+		_delay_ms(Delay_Display);					//Delay necesario para prender todos los displays
+		}
+	}
+	
+}
+
+/* Definición de funciones */
+uint8_t Display_Decodificador_Digito(uint8_t num_Digito){
+	///////Tabla Binario a digito de display
+	uint8_t Tabla_Display[10] = {		0x3F,//0
+		0x06,//1
+		0x5B,//2
+		0x4F,//3
+		0x66,//4
+		0x6D,//5
+		0x7D,//6
+		0x07,//7
+		0x7F,//8
+		0x6F //9
+	};
+	return Tabla_Display[num_Digito];
+}
+
+void Display_Decodificador_Entero_Decimal(uint16_t num_binario){
+	uint8_t u;
+	for (u = 0; u<numero_displays;u++)
+	{
+		Display_Buffer[u] = Display_Decodificador_Digito(num_binario%10);
+		num_binario/=10;
+	}
+}
+
+void Display_Gestionador_Enables(void){
+	static uint8_t u = 0;
+	Port_Enables = ~Mascara_Enables;	//Deshabilitamos los displays
+	Port_Display = Display_Buffer[u];	//Escribimos el digito en el display
+	Port_Enables |= (1 << u);			//Activamos el enable correspondiente
+	u++;								//Movemos el enable al siguiente display
+	if (u>=numero_displays){u = 0;}				//Regresamos al primer display
+}
