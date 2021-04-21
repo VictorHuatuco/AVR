@@ -1,0 +1,46 @@
+#define F_CPU 16000000
+
+/* Inclusiones */
+#include <stdint.h>
+#include <avr/io.h>
+#include <util/delay.h>
+
+/* Constantes y macros */
+	#define LED	6
+	#define BOTTON	7
+	#define PIN_BOTTON PINK 
+	#define PORT_LED	PORTK
+	#define DDR_LED_BOTTON() DDRK = ~((1<<4)|(1<<5)|(1<<BOTTON))
+	#define LED_ON()	PORT_LED |= (1 << LED)
+	#define LED_OFF()	PORT_LED &= ~(1 << LED)
+	#define Boton_presionado	(!(PIN_BOTTON & (1 << BOTTON)))
+
+/* Variables globales */
+
+
+/* Declaración de funciones */
+uint8_t Detecta_Evento_Boton_Pulsado(void);
+
+/* Fución principal */
+int main(void){
+	DDR_LED_BOTTON();
+	PORT_LED |= (1 << BOTTON);
+	while(1){
+		if (Boton_presionado)
+		{LED_ON();
+		}else{
+		LED_OFF();
+		}
+	}
+}
+
+/* Definición de funciones */
+
+uint8_t Detecta_Evento_Boton_Pulsado(void){
+	uint8_t estado_actual;
+	static uint8_t estado_anterior = 1;
+	uint8_t flanco_bajada;
+	estado_actual = PIN_BOTTON & (1 << BOTTON);
+	flanco_bajada = !estado_actual && estado_anterior;
+	estado_anterior = estado_actual;
+}
