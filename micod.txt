@@ -1,0 +1,107 @@
+#define F_CPU 16000000
+
+/* Inclusiones */
+#include <stdint.h>
+#include <avr/io.h>
+#include <util/delay.h>
+
+/* Constantes y macros */
+	#define LED	6
+	#define BOTTON	7
+	#define BOTTON2 5 
+	#define PIN_BOTTON PINK 
+		#define PORT_LED	PORTK
+#define DDR_Display	DDRF
+#define Port_Display	PORTF
+//#define DDR_LED_BOTTON() DDRK = ~((1<<4)|(1<<BOTTON)|(1<<BOTTON2))
+	#define LED_ON()	PORT_LED |= (1 << LED)
+	#define LED_OFF()	PORT_LED &= ~(1 << LED)
+	#define Boton_presionado	(!(PIN_BOTTON & (1 << BOTTON)))	
+#define Port_Enables	PORTK 
+#define Mascara_Enables	0xDF
+#define numero_displays	4
+#define Delay_Display	(32/numero_displays)
+#define Delay_segundo	(2000/Delay_Display)
+
+uint16_t num = 4550;
+uint8_t sec;
+
+/* Variables globales */
+uint8_t Display_Buffer[4];
+
+/* Declaración de funciones */
+uint8_t Display_Decodificador_Digito(uint8_t num_Digito);
+void Display_Decodificador_Entero_Decimal(uint16_t num_binario);
+void Display_Gestionador_Enables(void);
+uint8_t Detecta_Evento_Boton_Pulsado(void);
+
+
+/* Fución principal */
+int main(void){
+	DDR_Display = 0xFF;		//Configuramos como salida los pines del Display
+	//DDR_LED_BOTTON();
+	DDRK = 0X4F;
+	//DDR_Enables = 0x0F;		//Configuramos como salida los enables
+	Port_Display = 0x00;	//Inicializamos el display
+	Port_Enables = 0x00;	//Inicializamos los enables
+	int dato, dato1, dato2 = 0 ;
+	dato = 9999;
+	
+	while(1)
+	{
+	for ( dato2 = 0; dato2 <= dato ; dato2 ++)
+	{
+	for ( dato1 = 0 ; dato1 <= 200 ; dato1 ++)
+	{
+	    Display_Decodificador_Entero_Decimal(dato2);
+	    Display_Gestionador_Enables();
+		_delay_ms(5);
+	}
+	}
+	}
+	return 0;
+}
+
+/* Definición de funciones */
+uint8_t Display_Decodificador_Digito(uint8_t num_Digito){
+	///////Tabla Binario a digito de display
+	uint8_t Tabla_Display[10] = {		
+		0x3F,//0
+		0x06,//1
+		0x5B,//2
+		0x4F,//3
+		0x66,//4
+		0x6D,//5
+		0x7D,//6
+		0x07,//7
+		0x7F,//8
+		0x6F //9
+	};
+	return Tabla_Display[num_Digito];
+}
+
+void Display_Decodificador_Entero_Decimal(uint16_t num_binario){
+	uint8_t u;
+	for (u = 0; u<numero_displays;u++)
+	{
+		Display_Buffer[u] = Display_Decodificador_Digito(num_binario%10);
+		num_binario/=10;
+	}
+}
+void Display_Gestionador_Enables(void){
+	static uint8_t u = 0;
+	Port_Enables = ~Mascara_Enables;	//Deshabilitamos los displays
+	Port_Display = Display_Buffer[u];	//Escribimos el digito en el display
+	Port_Enables |= (1 << u);			//Activamos el enable correspondiente
+	u++;								//Movemos el enable al siguiente display
+	if (u>=numero_displays){u = 0;}				//Regresamos al primer display
+}
+uint8_t Detecta_Evento_Boton_Pulsado(void){
+	uint8_t estado_actual;
+	static uint8_t estado_anterior = 1;
+	uint8_t flanco_bajada;
+	estado_actual = PIN_BOTTON & (1 << BOTTON);
+	flanco_bajada = !estado_actual && estado_anterior;
+	estado_anterior = estado_actual;
+	return flanco_bajada; 
+}
